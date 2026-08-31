@@ -1,3 +1,171 @@
+=== FILE: package.json === 
+{
+  "name": "nexus-enterprise-starter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Enterprise-grade Backend Starter Kit built with DDD, Clean Architecture, CQRS, Domain Events, OpenTelemetry and TypeScript.",
+  "author": "Samshak Developer",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/bootstrap/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/bootstrap/main.js",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "@typescript-eslint/eslint-plugin": "^8.68.0",
+    "@typescript-eslint/parser": "^8.68.0",
+    "eslint": "^10.9.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "awilix": "^13.0.5"
+  }
+}
+
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\aggregate-root.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\entity.ts === 
+import { UniqueEntityId } from './unique-entity-id';
+
+export abstract class Entity<TProps> {
+    protected readonly _id: UniqueEntityId;
+    protected props: TProps;
+
+    protected constructor(
+        props: TProps,
+        id?: UniqueEntityId,
+    ) {
+        this._id = id ?? new UniqueEntityId();
+        this.props = props;
+    }
+
+    public get id(): UniqueEntityId {
+        return this._id;
+    }
+
+    public equals(object?: Entity<TProps>): boolean {
+        if (!object) {
+            return false;
+        }
+
+        return this._id.equals(object._id);
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\unique-entity-id.ts === 
+import { randomUUID } from 'node:crypto';
+
+export class UniqueEntityId {
+    private readonly value: string;
+
+    constructor(id?: string) {
+        this.value = id ?? randomUUID();
+    }
+
+    public equals(other: UniqueEntityId): boolean {
+        return this.value === other.value;
+    }
+
+    public toString(): string {
+        return this.value;
+    }
+
+    public toValue(): string {
+        return this.value;
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\value-object.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-event.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-events.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\result\result.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: package-lock.json === 
 {
   "name": "nexus-enterprise-starter",
   "version": "0.1.0",
@@ -9,8 +177,7 @@
       "version": "0.1.0",
       "license": "UNLICENSED",
       "dependencies": {
-        "awilix": "^13.0.5",
-        "zod": "^4.5.4"
+        "awilix": "^13.0.5"
       },
       "devDependencies": {
         "@types/node": "^26.4.0",
@@ -1843,14 +2010,1099 @@
       "funding": {
         "url": "https://github.com/sponsors/sindresorhus"
       }
-    },
-    "node_modules/zod": {
-      "version": "4.5.4",
-      "resolved": "https://registry.npmjs.org/zod/-/zod-4.5.4.tgz",
-      "integrity": "sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==",
-      "funding": {
-        "url": "https://github.com/sponsors/colinhacks"
-      }
     }
   }
 }
+
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\aggregate-root.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\entity.ts === 
+import { UniqueEntityId } from './unique-entity-id';
+
+export abstract class Entity<TProps> {
+    protected readonly _id: UniqueEntityId;
+    protected props: TProps;
+
+    protected constructor(
+        props: TProps,
+        id?: UniqueEntityId,
+    ) {
+        this._id = id ?? new UniqueEntityId();
+        this.props = props;
+    }
+
+    public get id(): UniqueEntityId {
+        return this._id;
+    }
+
+    public equals(object?: Entity<TProps>): boolean {
+        if (!object) {
+            return false;
+        }
+
+        return this._id.equals(object._id);
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\unique-entity-id.ts === 
+import { randomUUID } from 'node:crypto';
+
+export class UniqueEntityId {
+    private readonly value: string;
+
+    constructor(id?: string) {
+        this.value = id ?? randomUUID();
+    }
+
+    public equals(other: UniqueEntityId): boolean {
+        return this.value === other.value;
+    }
+
+    public toString(): string {
+        return this.value;
+    }
+
+    public toValue(): string {
+        return this.value;
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\value-object.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-event.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-events.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\result\result.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: tsconfig.json === 
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    "strict": true,
+
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    "esModuleInterop": true,
+
+    "resolveJsonModule": true,
+
+    "declaration": true,
+    "sourceMap": true
+  },
+
+  "include": [
+    "src/**/*.ts"
+  ],
+
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\aggregate-root.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\entity.ts === 
+import { UniqueEntityId } from './unique-entity-id';
+
+export abstract class Entity<TProps> {
+    protected readonly _id: UniqueEntityId;
+    protected props: TProps;
+
+    protected constructor(
+        props: TProps,
+        id?: UniqueEntityId,
+    ) {
+        this._id = id ?? new UniqueEntityId();
+        this.props = props;
+    }
+
+    public get id(): UniqueEntityId {
+        return this._id;
+    }
+
+    public equals(object?: Entity<TProps>): boolean {
+        if (!object) {
+            return false;
+        }
+
+        return this._id.equals(object._id);
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\unique-entity-id.ts === 
+import { randomUUID } from 'node:crypto';
+
+export class UniqueEntityId {
+    private readonly value: string;
+
+    constructor(id?: string) {
+        this.value = id ?? randomUUID();
+    }
+
+    public equals(other: UniqueEntityId): boolean {
+        return this.value === other.value;
+    }
+
+    public toString(): string {
+        return this.value;
+    }
+
+    public toValue(): string {
+        return this.value;
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\value-object.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-event.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-events.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\result\result.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: tsconfig.build.json === 
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "tests",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
+}
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\aggregate-root.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\entity.ts === 
+import { UniqueEntityId } from './unique-entity-id';
+
+export abstract class Entity<TProps> {
+    protected readonly _id: UniqueEntityId;
+    protected props: TProps;
+
+    protected constructor(
+        props: TProps,
+        id?: UniqueEntityId,
+    ) {
+        this._id = id ?? new UniqueEntityId();
+        this.props = props;
+    }
+
+    public get id(): UniqueEntityId {
+        return this._id;
+    }
+
+    public equals(object?: Entity<TProps>): boolean {
+        if (!object) {
+            return false;
+        }
+
+        return this._id.equals(object._id);
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\unique-entity-id.ts === 
+import { randomUUID } from 'node:crypto';
+
+export class UniqueEntityId {
+    private readonly value: string;
+
+    constructor(id?: string) {
+        this.value = id ?? randomUUID();
+    }
+
+    public equals(other: UniqueEntityId): boolean {
+        return this.value === other.value;
+    }
+
+    public toString(): string {
+        return this.value;
+    }
+
+    public toValue(): string {
+        return this.value;
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\value-object.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-event.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-events.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\result\result.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: eslint.config.js === 
+const tseslint = require('@typescript-eslint/eslint-plugin');
+const tsParser = require('@typescript-eslint/parser');
+
+module.exports = [
+    {
+        files: ['**/*.ts'],
+
+        languageOptions: {
+            parser: tsParser,
+            ecmaVersion: 'latest',
+            sourceType: 'module',
+        },
+
+        plugins: {
+            '@typescript-eslint': tseslint,
+        },
+
+        rules: {
+            '@typescript-eslint/no-explicit-any': 'error',
+            '@typescript-eslint/no-unused-vars': 'error',
+            'no-console': 'warn',
+        },
+    },
+];
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\aggregate-root.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\entity.ts === 
+import { UniqueEntityId } from './unique-entity-id';
+
+export abstract class Entity<TProps> {
+    protected readonly _id: UniqueEntityId;
+    protected props: TProps;
+
+    protected constructor(
+        props: TProps,
+        id?: UniqueEntityId,
+    ) {
+        this._id = id ?? new UniqueEntityId();
+        this.props = props;
+    }
+
+    public get id(): UniqueEntityId {
+        return this._id;
+    }
+
+    public equals(object?: Entity<TProps>): boolean {
+        if (!object) {
+            return false;
+        }
+
+        return this._id.equals(object._id);
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\unique-entity-id.ts === 
+import { randomUUID } from 'node:crypto';
+
+export class UniqueEntityId {
+    private readonly value: string;
+
+    constructor(id?: string) {
+        this.value = id ?? randomUUID();
+    }
+
+    public equals(other: UniqueEntityId): boolean {
+        return this.value === other.value;
+    }
+
+    public toString(): string {
+        return this.value;
+    }
+
+    public toValue(): string {
+        return this.value;
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\value-object.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-event.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-events.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\result\result.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: .editorconfig === 
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\aggregate-root.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\entity.ts === 
+import { UniqueEntityId } from './unique-entity-id';
+
+export abstract class Entity<TProps> {
+    protected readonly _id: UniqueEntityId;
+    protected props: TProps;
+
+    protected constructor(
+        props: TProps,
+        id?: UniqueEntityId,
+    ) {
+        this._id = id ?? new UniqueEntityId();
+        this.props = props;
+    }
+
+    public get id(): UniqueEntityId {
+        return this._id;
+    }
+
+    public equals(object?: Entity<TProps>): boolean {
+        if (!object) {
+            return false;
+        }
+
+        return this._id.equals(object._id);
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\unique-entity-id.ts === 
+import { randomUUID } from 'node:crypto';
+
+export class UniqueEntityId {
+    private readonly value: string;
+
+    constructor(id?: string) {
+        this.value = id ?? randomUUID();
+    }
+
+    public equals(other: UniqueEntityId): boolean {
+        return this.value === other.value;
+    }
+
+    public toString(): string {
+        return this.value;
+    }
+
+    public toValue(): string {
+        return this.value;
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\value-object.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-event.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-events.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\result\result.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: .gitignore === 
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+
+# TypeScript
+*.tsbuildinfo
+
+# Cache
+.cache/
+.eslintcache
+
+# Docker
+.docker/
+
+# Misc
+*.local
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\aggregate-root.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\entity.ts === 
+import { UniqueEntityId } from './unique-entity-id';
+
+export abstract class Entity<TProps> {
+    protected readonly _id: UniqueEntityId;
+    protected props: TProps;
+
+    protected constructor(
+        props: TProps,
+        id?: UniqueEntityId,
+    ) {
+        this._id = id ?? new UniqueEntityId();
+        this.props = props;
+    }
+
+    public get id(): UniqueEntityId {
+        return this._id;
+    }
+
+    public equals(object?: Entity<TProps>): boolean {
+        if (!object) {
+            return false;
+        }
+
+        return this._id.equals(object._id);
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\unique-entity-id.ts === 
+import { randomUUID } from 'node:crypto';
+
+export class UniqueEntityId {
+    private readonly value: string;
+
+    constructor(id?: string) {
+        this.value = id ?? randomUUID();
+    }
+
+    public equals(other: UniqueEntityId): boolean {
+        return this.value === other.value;
+    }
+
+    public toString(): string {
+        return this.value;
+    }
+
+    public toValue(): string {
+        return this.value;
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\value-object.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-event.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-events.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\result\result.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: .env.example === 
+
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\aggregate-root.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\entity.ts === 
+import { UniqueEntityId } from './unique-entity-id';
+
+export abstract class Entity<TProps> {
+    protected readonly _id: UniqueEntityId;
+    protected props: TProps;
+
+    protected constructor(
+        props: TProps,
+        id?: UniqueEntityId,
+    ) {
+        this._id = id ?? new UniqueEntityId();
+        this.props = props;
+    }
+
+    public get id(): UniqueEntityId {
+        return this._id;
+    }
+
+    public equals(object?: Entity<TProps>): boolean {
+        if (!object) {
+            return false;
+        }
+
+        return this._id.equals(object._id);
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\unique-entity-id.ts === 
+import { randomUUID } from 'node:crypto';
+
+export class UniqueEntityId {
+    private readonly value: string;
+
+    constructor(id?: string) {
+        this.value = id ?? randomUUID();
+    }
+
+    public equals(other: UniqueEntityId): boolean {
+        return this.value === other.value;
+    }
+
+    public toString(): string {
+        return this.value;
+    }
+
+    public toValue(): string {
+        return this.value;
+    }
+} 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\value-object.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-event.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\events\domain-events.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.
+=== FILE: F:\nexus-enterprise-starter\src\kernel\result\result.ts === 
+ 
+=== FILE: F:\nexus-enterprise-starter\docs\adr\0001-architecture-decisions.md === 
+Fastify
+Awilix
+Zod
+MongoDB Native Driver
+Pino
+Vitest
+OpenTelemetry
+DDD
+CQRS
+Domain Events.

@@ -22,5 +22,9 @@
     "eslint": "^10.9.1",
     "tsx": "^4.23.13",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "awilix": "^13.0.5",
+    "zod": "^4.5.4"
   }
 }
