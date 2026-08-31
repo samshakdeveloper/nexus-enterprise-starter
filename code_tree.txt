@@ -1,0 +1,20 @@
+Folder PATH listing for volume New Volume
+Volume serial number is 00000019 92D9:A78D
+F:\NEXUS-ENTERPRISE-STARTER\SRC
++---bootstrap
++---config
++---infrastructure
+|   +---cache
+|   +---database
+|   +---messaging
+|   +---observability
+|   \---security
++---kernel
+|   +---application
+|   +---cqrs
+|   +---domain
+|   +---errors
+|   +---events
+|   \---result
++---modules
+\---shared
