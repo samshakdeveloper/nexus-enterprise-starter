@@ -8,14 +8,5 @@
   "engines": {
     "node": ">=22"
   },
-  "scripts": {
-    "dev": "tsx watch src/bootstrap/main.ts",
-    "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/bootstrap/main.js",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  }
+  "scripts": {}
 }
