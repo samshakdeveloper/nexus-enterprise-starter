@@ -1,7 +1,7 @@
 Fastify
 Awilix
 Zod
-Mongo Native Driver
+MongoDB Native Driver
 Pino
 Vitest
 OpenTelemetry

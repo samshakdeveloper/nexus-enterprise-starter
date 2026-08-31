@@ -1,0 +1,56 @@
+# Nexus Enterprise Starter
+
+> Enterprise-grade Backend Starter Kit built with Domain-Driven Design (DDD), Clean Architecture, CQRS, Domain Events, OpenTelemetry, and TypeScript.
+
+---
+
+## Vision
+
+Nexus Enterprise Starter is a production-ready backend foundation designed for long-term maintainability, scalability, and architectural excellence.
+
+The goal of this project is to provide a reusable foundation for building enterprise-grade applications without sacrificing code quality, domain integrity, or developer experience.
+
+---
+
+## Architecture Principles
+
+- Domain-Driven Design (DDD)
+- Clean Architecture
+- Modular Monolith
+- CQRS Ready
+- Event-Driven Ready
+- Dependency Injection
+- Strategic & Tactical DDD Patterns
+- Architecture Enforcement
+- Observability First
+- Cloud-Native Mindset
+
+---
+
+## Technology Stack
+
+| Category | Technology |
+|-----------|------------|
+| Runtime | Node.js |
+| Language | TypeScript |
+| HTTP Framework | Fastify |
+| Dependency Injection | Awilix |
+| Validation | Zod |
+| Database | MongoDB Native Driver |
+| Logging | Pino |
+| Testing | Vitest |
+| Observability | OpenTelemetry |
+
+---
+
+## Project Structure
+
+```text
+src/
+├── bootstrap/
+├── config/
+├── infrastructure/
+├── kernel/
+├── modules/
+└── shared/
+```
