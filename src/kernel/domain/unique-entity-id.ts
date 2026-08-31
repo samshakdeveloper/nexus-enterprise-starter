@@ -7,12 +7,8 @@ export class UniqueEntityId {
         this.value = id ?? randomUUID();
     }
 
-    public equals(id?: UniqueEntityId): boolean {
-        if (!id) {
-            return false;
-        }
-
-        return this.value === id.value;
+    public equals(other: UniqueEntityId): boolean {
+        return this.value === other.value;
     }
 
     public toString(): string {
