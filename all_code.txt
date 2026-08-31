@@ -1,0 +1,8 @@
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\aggregate-root.ts ===  
+ 
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\entity.ts ===  
+ 
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\unique-entity-id.ts ===  
+ 
+=== FILE: F:\nexus-enterprise-starter\src\kernel\domain\value-object.ts ===  
+ 

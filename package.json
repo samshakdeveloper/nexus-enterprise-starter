@@ -1,0 +1,21 @@
+{
+  "name": "nexus-enterprise-starter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Enterprise-grade Backend Starter Kit built with DDD, Clean Architecture, CQRS, Domain Events, OpenTelemetry and TypeScript.",
+  "author": "Samshak Developer",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/bootstrap/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/bootstrap/main.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}
