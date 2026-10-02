@@ -1,0 +1,1995 @@
+=== FILE: F:\nexus-ai-web3-hub\src\app.ts ===  
+import express, { Application } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import { authRouter } from '@modules/users/infrastructure/http/routes/auth.routes';
+import { userRouter } from '@modules/users/infrastructure/http/routes/user.routes';
+import { errorMiddleware } from '@shared/infrastructure/http/middlewares/error.middleware';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from '@config/swagger.config';
+
+const app: Application = express();
+
+// Middlewares
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+// Swagger Documentation
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Health check endpoint
+app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date() });
+});
+
+// Routes
+app.use('/api/v1/users', userRouter);
+app.use('/api/v1/auth', authRouter);
+
+// Global Error Handler Middleware
+app.use(errorMiddleware);
+
+export { app };
+export default app; 
+=== FILE: F:\nexus-ai-web3-hub\src\index.ts ===  
+import 'module-alias/register';
+import { env } from '@config/env.config';
+import { logger } from '@shared/infrastructure/logger';
+import { MongoDatabase } from '@shared/infrastructure/database/mongodb';
+import { app } from './app';
+
+async function bootstrap(): Promise<void> {
+    try {
+        logger.info('🚀 Initializing Nexus Enterprise AI & Web3 Hub...');
+        logger.info(`⚙️  Environment: ${env.NODE_ENV}`);
+        logger.info(`🔌 Port Configured: ${env.PORT}`);
+
+        // 1. Initialize Infrastructure Connections
+        const db = MongoDatabase.getInstance();
+        await db.connect();
+
+        // 2. Start HTTP Server Listener
+        const server = app.listen(env.PORT, () => {
+            logger.info(`🌐 HTTP Server successfully running on port ${env.PORT} in ${env.NODE_ENV} mode`);
+        });
+
+        // 3. Global Unhandled Crash Guards
+        process.on('uncaughtException', (error: Error) => {
+            logger.error('💥 Uncaught Exception detected:', error);
+            process.exit(1);
+        });
+
+        process.on('unhandledRejection', (reason: unknown) => {
+            logger.error('💥 Unhandled Rejection detected:', reason instanceof Error ? reason : new Error(String(reason)));
+            process.exit(1);
+        });
+
+        // 4. Enterprise Graceful Shutdown Protocol
+        const shutdown = async (signal: string): Promise<void> => {
+            logger.warn(`⚠️  Received ${signal}. Initiating graceful shutdown sequence...`);
+
+            server.close(async () => {
+                logger.info('🚪 HTTP server closed to new requests.');
+                try {
+                    await db.disconnect();
+                    logger.info('👋 Database connection safely closed.');
+                    process.exit(0);
+                } catch (err) {
+                    logger.error('❌ Error during database teardown:', err);
+                    process.exit(1);
+                }
+            });
+        };
+
+        process.on('SIGTERM', () => void shutdown('SIGTERM'));
+        process.on('SIGINT', () => void shutdown('SIGINT'));
+
+    } catch (error) {
+        logger.error('❌ Fatal error during bootstrap phase:', error);
+        process.exit(1);
+    }
+}
+
+void bootstrap(); 
+=== FILE: F:\nexus-ai-web3-hub\src\config\env.config.ts ===  
+import dotenv from 'dotenv';
+import { z } from 'zod';
+
+dotenv.config();
+
+const envSchema = z.object({
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    PORT: z.string().transform((val) => parseInt(val, 10)).default('3000'),
+    LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug']).default('info'),
+
+    // Database Configurations
+    MONGODB_URI: z.string().url({ message: 'MONGODB_URI must be a valid connection string' }),
+    REDIS_HOST: z.string().default('localhost'),
+    REDIS_PORT: z.string().transform((val) => parseInt(val, 10)).default('6379'),
+
+    // Service Keys
+    OPENAI_API_KEY: z.string().min(1, { message: 'OPENAI_API_KEY is required' }),
+    TELEGRAM_BOT_TOKEN: z.string().min(1, { message: 'TELEGRAM_BOT_TOKEN is required' }),
+    ETH_RPC_URL: z.string().url({ message: 'ETH_RPC_URL must be a valid RPC URL' }),
+
+    // JWT Configurations
+    JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters long'),
+    JWT_EXPIRES_IN: z.string().default('1d'),
+});
+
+export interface EnvConfig {
+    NODE_ENV: 'development' | 'production' | 'test';
+    PORT: number;
+    LOG_LEVEL: 'error' | 'warn' | 'info' | 'http' | 'debug';
+    MONGODB_URI: string;
+    REDIS_HOST: string;
+    REDIS_PORT: number;
+    OPENAI_API_KEY: string;
+    TELEGRAM_BOT_TOKEN: string;
+    ETH_RPC_URL: string;
+    JWT_SECRET: string;
+    JWT_EXPIRES_IN: string;
+}
+
+const parseEnv = (): EnvConfig => {
+    const result = envSchema.safeParse(process.env);
+
+    if (!result.success) {
+        // eslint-disable-next-line no-console
+        console.error('❌ Environment Variable Validation Error:', JSON.stringify(result.error.format(), null, 2));
+        process.exit(1);
+    }
+
+    return result.data as EnvConfig;
+};
+
+export const env: EnvConfig = parseEnv(); 
+=== FILE: F:\nexus-ai-web3-hub\src\config\swagger.config.ts ===  
+import swaggerJSDoc from 'swagger-jsdoc';
+import { env } from './env.config';
+
+const options: swaggerJSDoc.Options = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'Enterprise Node.js TypeScript API Starter Kit',
+            version: '1.0.0',
+            description: 'Generic Clean Architecture & DDD REST API Starter Kit',
+            contact: {
+                name: 'API Development Team',
+            },
+        },
+        servers: [
+            {
+                url: `http://localhost:${env.PORT}/api/v1`,
+                description: 'Local Development Server',
+            },
+        ],
+        components: {
+            securitySchemes: {
+                BearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                    description: 'Enter your JWT token to authorize requests.',
+                },
+            },
+        },
+    },
+    apis: ['./src/modules/**/*.ts', './src/shared/**/*.ts'],
+};
+
+export const swaggerSpec = swaggerJSDoc(options); 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\application\use-cases\authenticate-user.spec.ts ===  
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { AuthenticateUser, InvalidCredentialsError } from './authenticate-user';
+import { IUserRepository } from '@modules/users/domain/user.repository.interface';
+import { User } from '@modules/users/domain/user.entity';
+import { UserEmail } from '@modules/users/domain/value-objects/user-email';
+import { PasswordHasher } from '@shared/infrastructure/security/password-hasher';
+import { JwtService } from '@shared/infrastructure/security/jwt.service';
+
+
+describe('AuthenticateUser Use Case', () => {
+    let authenticateUser: AuthenticateUser;
+    let mockUserRepository: Partial<IUserRepository>;
+
+    const testEmail = 'test@nexus.com';
+    const testPassword = 'Password123';
+    const mockToken = 'mock_jwt_token_string';
+
+    beforeEach(() => {
+        vi.restoreAllMocks(); // ۱. ابتدا پاکسازی ماک‌ها
+
+        mockUserRepository = { // ۲. تعریف ماک ریپازیتوری
+            findByEmail: vi.fn(),
+        };
+        authenticateUser = new AuthenticateUser(mockUserRepository as IUserRepository);
+
+        // ۳. تعریف Spy روی سرویس‌های جانبی
+        vi.spyOn(PasswordHasher, 'compare').mockResolvedValue(true);
+        vi.spyOn(JwtService, 'generateToken').mockReturnValue(mockToken);
+    });
+
+    it('should successfully authenticate a user when valid credentials are provided', async () => {
+        // ساخت یک کاربر نمونه دامنه با رعایت الگوی Result دامنه
+        const emailOrError = UserEmail.create(testEmail);
+        const userOrError = User.create({
+            email: emailOrError.value!,
+            password: testPassword
+        });
+
+        // اگر User.create خودش Result برمی‌گرداند:
+        const mockUser = userOrError.isOk ? userOrError.value : userOrError;
+        // (اگر User.create مستقیماً انتیتی برمی‌گرداند که همان خط قبلی درست است، اما چک کردن isOk جلوی خطاهای احتمالی دامنه را می‌گیرد)
+
+        // شبیه‌سازی پیدا شدن کاربر در دیتابیس
+        vi.mocked(mockUserRepository.findByEmail).mockResolvedValueOnce(mockUser as any);
+
+        const result = await authenticateUser.execute({
+            email: testEmail,
+            password: testPassword,
+        });
+
+        expect(result.isOk).toBe(true);
+        expect(result.value).toEqual({
+            token: mockToken,
+            user: {
+                id: expect.any(String),
+                email: testEmail,
+            },
+        });
+        expect(mockUserRepository.findByEmail).toHaveBeenCalledWith(testEmail);
+
+    });
+
+    it('should fail with InvalidCredentialsError if password comparison fails', async () => {
+        const emailOrError = UserEmail.create(testEmail);
+        const userOrError = User.create({
+            email: emailOrError.value!,
+            password: testPassword,
+        });
+
+        const mockUser = userOrError.isOk ? userOrError.value : userOrError;
+
+        vi.mocked(mockUserRepository.findByEmail).mockResolvedValueOnce(mockUser as any);
+        vi.spyOn(PasswordHasher, 'compare').mockResolvedValueOnce(false);
+
+        const result = await authenticateUser.execute({
+            email: testEmail,
+            password: 'WrongPassword',
+        });
+
+        expect(result.isErr).toBe(true);
+        expect(result.error).toBeInstanceOf(InvalidCredentialsError);
+        expect(result.error.statusCode).toBe(401);
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\application\use-cases\authenticate-user.ts ===  
+import { IUserRepository } from '@modules/users/domain/user.repository.interface';
+import { ok, err, Result } from '@shared/core/result';
+import { BaseError } from '@shared/core/errors/base.error';
+import { JwtService } from '@shared/infrastructure/security/jwt.service';
+import { PasswordHasher } from '@shared/infrastructure/security/password-hasher';
+
+export class InvalidCredentialsError extends BaseError {
+    constructor() {
+        super('Invalid email or password', 'INVALID_CREDENTIALS', 401);
+        this.name = 'InvalidCredentialsError';
+    }
+}
+
+export interface AuthResponseDto {
+    token: string;
+    user: {
+        id: string;
+        email: string;
+    };
+}
+
+export class AuthenticateUser {
+    constructor(private readonly userRepository: IUserRepository) {}
+
+    public async execute(input: { email: string; password: string }): Promise<Result<AuthResponseDto, BaseError>> {
+        // ۱. جستجوی کاربر با ایمیل
+        const user = await this.userRepository.findByEmail(input.email);
+
+        if (!user) {
+            return err(new InvalidCredentialsError());
+        }
+
+        // ۲. بررسی صحت کلمه‌عبور با هش ذخیره‌شده
+        const isPasswordValid = await PasswordHasher.compare(input.password, user.password.value);
+
+        if (!isPasswordValid) {
+            return err(new InvalidCredentialsError());
+        }
+
+        // ۳. تولید توکن JWT
+        const token = JwtService.generateToken({
+            userId: user.id.toString(),
+            email: user.email.value,
+        });
+
+        // ۴. بازگرداندن پاسخ موفقیت‌آمیز همراه با توکن
+        return ok({
+            token,
+            user: {
+                id: user.id.toString(),
+                email: user.email.value,
+            },
+        });
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\application\use-cases\create-user.spec.ts ===  
+import { describe, it, expect, beforeEach } from 'vitest';
+import { CreateUserUseCase, UserAlreadyExistsError } from './create-user.use-case';
+import { IUserRepository } from '../../domain/user.repository.interface';
+import { User } from '../../domain/user.entity';
+
+class InMemoryUserRepository implements IUserRepository {
+    private users: Map<string, User> = new Map();
+
+    async save(user: User): Promise<void> {
+        this.users.set(user.id, user);
+    }
+
+    async findByEmail(email: string): Promise<User | null> {
+        for (const user of this.users.values()) {
+            if (user.email.value === email) {
+                return user;
+            }
+        }
+        return null;
+    }
+
+    async findById(id: string): Promise<User | null> {
+        return this.users.get(id) || null;
+    }
+}
+
+describe('CreateUserUseCase', () => {
+    let repository: InMemoryUserRepository;
+    let useCase: CreateUserUseCase;
+
+    beforeEach(() => {
+        repository = new InMemoryUserRepository();
+        useCase = new CreateUserUseCase(repository);
+    });
+
+    it('should create and save a new user successfully', async () => {
+        const dto = { email: 'john@example.com', password: 'securePassword123' };
+        const result = await useCase.execute(dto);
+
+        expect(result.isOk).toBe(true);
+        if (result.isOk) {
+            expect(result.value.email.value).toBe('john@example.com');
+            const savedUser = await repository.findByEmail('john@example.com');
+            expect(savedUser).not.toBeNull();
+        }
+    });
+
+    it('should return error if user with same email exists', async () => {
+        const dto = { email: 'john@example.com', password: 'securePassword123' };
+        await useCase.execute(dto);
+
+        const result = await useCase.execute(dto);
+        expect(result.isErr).toBe(true);
+        if (result.isErr) {
+            expect(result.error).toBeInstanceOf(UserAlreadyExistsError);
+        }
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\application\use-cases\create-user.use-case.ts ===  
+import { IUserRepository } from '@modules/users/domain/user.repository.interface';
+import { User } from '@modules/users/domain/user.entity';
+import { UserEmail } from '@modules/users/domain/value-objects/user-email';
+import { UserPassword } from '@modules/users/domain/value-objects/user-password';
+import { Result, ok, err } from '@shared/core/result';
+import { BaseError } from '@shared/core/errors/base.error';
+import { PasswordHasher } from '@shared/infrastructure/security/password-hasher';
+
+export interface CreateUserDTO {
+    email: string;
+    password: string;
+}
+
+export class UserAlreadyExistsError extends BaseError {
+    constructor(email: string) {
+        super(`User with email ${email} already exists`, 'USER_ALREADY_EXISTS', 400);
+        this.name = 'UserAlreadyExistsError';
+    }
+}
+
+export class CreateUserUseCase {
+    constructor(private readonly userRepository: IUserRepository) {}
+
+    public async execute(dto: CreateUserDTO): Promise<Result<User, BaseError>> {
+        const emailResult = UserEmail.create(dto.email);
+        if (emailResult.isErr) {
+            return err(emailResult.error);
+        }
+
+        const hashedPassword = await PasswordHasher.hash(dto.password);
+        const passwordResult = UserPassword.create(hashedPassword);
+        if (passwordResult.isErr) {
+            return err(passwordResult.error);
+        }
+
+        const email = emailResult.value;
+        const password = passwordResult.value;
+
+        const existingUser = await this.userRepository.findByEmail(email.value);
+        if (existingUser) {
+            return err(new UserAlreadyExistsError(email.value));
+        }
+
+        const user = User.create({ email, password });
+        await this.userRepository.save(user);
+
+        return ok(user);
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\domain\user.entity.ts ===  
+import { Entity } from '@shared/domain/entity';
+import { UserEmail } from './value-objects/user-email';
+import { UserPassword } from './value-objects/user-password';
+
+export interface UserProps {
+    email: UserEmail;
+    password: UserPassword;
+    fullName?: string | undefined;
+    role: 'user' | 'admin';
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt?: Date | undefined;
+}
+
+export interface CreateUserProps {
+    email: UserEmail;
+    password: UserPassword;
+    fullName?: string | undefined;
+    role?: 'user' | 'admin' | undefined;
+    isActive?: boolean | undefined;
+    createdAt?: Date | undefined;
+    updatedAt?: Date | undefined;
+}
+
+/**
+ * Domain Entity representing a User in the system boundary.
+ * Enforces business constraints and immutable identification.
+ */
+export class User extends Entity<UserProps> {
+    get email(): UserEmail {
+        return this.props.email;
+    }
+
+    get password(): UserPassword {
+        return this.props.password;
+    }
+
+    get fullName(): string | undefined {
+        return this.props.fullName;
+    }
+
+    get role(): 'user' | 'admin' {
+        return this.props.role;
+    }
+
+    get isActive(): boolean {
+        return this.props.isActive;
+    }
+
+    get createdAt(): Date {
+        return this.props.createdAt;
+    }
+
+    get updatedAt(): Date | undefined {
+        return this.props.updatedAt;
+    }
+
+    public static create(props: CreateUserProps, id?: string): User {
+        const now = new Date();
+
+        return new User(
+            {
+                email: props.email,
+                password: props.password,
+                fullName: props.fullName,
+                role: props.role ? props.role : 'user',
+                isActive: props.isActive !== undefined ? props.isActive : true,
+                createdAt: props.createdAt ? props.createdAt : now,
+                updatedAt: props.updatedAt ? props.updatedAt : now,
+            },
+            id
+        );
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\domain\user.repository.interface.ts ===  
+import { User } from './user.entity';
+
+/**
+ * Domain Repository Interface for User Aggregate.
+ * Defines contract for data persistence abstraction (DIP).
+ */
+export interface IUserRepository {
+    save(user: User): Promise<void>;
+    findByEmail(email: string): Promise<User | null>;
+    findById(id: string): Promise<User | null>;
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\domain\user.spec.ts ===  
+import { describe, it, expect } from 'vitest';
+import { User } from './user.entity';
+import { UserEmail } from './value-objects/user-email';
+import { UserPassword } from './value-objects/user-password';
+
+describe('User Domain Entity Unit Tests', () => {
+    it('should create a valid user domain entity', () => {
+        const emailResult = UserEmail.create('test@example.com');
+        const passwordResult = UserPassword.create('Password123');
+
+        expect(emailResult.isOk).toBe(true);
+        expect(passwordResult.isOk).toBe(true);
+
+        if (emailResult.isOk && passwordResult.isOk) {
+            const user = User.create({
+                email: emailResult.value,
+                password: passwordResult.value,
+                fullName: 'John Doe',
+                role: 'user',
+            });
+
+            expect(user.email.value).toBe('test@example.com');
+            expect(user.fullName).toBe('John Doe');
+            expect(user.role).toBe('user');
+            expect(user.isActive).toBe(true);
+            expect(user.id).toBeDefined();
+        }
+    });
+
+    it('should respect custom status and role configurations', () => {
+        const email = UserEmail.create('admin@example.com').unwrap();
+        const password = UserPassword.create('AdminPass123').unwrap();
+
+        const user = User.create({
+            email,
+            password,
+            role: 'admin',
+            isActive: false,
+        });
+
+        expect(user.role).toBe('admin');
+        expect(user.isActive).toBe(false);
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\domain\value-objects\user-email.ts ===  
+import { ValueObject } from '../../../../shared/domain/value-object';
+import { Result, ok, err } from '../../../../shared/core/result';
+import { BaseError } from '../../../../shared/core/errors/base.error';
+
+export interface UserEmailProps {
+    value: string;
+    [key: string]: unknown; // اضافه کردن Index Signature
+}
+
+export class InvalidEmailError extends BaseError {
+    constructor(email: string) {
+        super(`Invalid email format provided: ${email}`);
+    }
+}
+
+export class UserEmail extends ValueObject<UserEmailProps> {
+    private static readonly EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    get value(): string {
+        return this.props.value;
+    }
+
+    public static create(email: string): Result<UserEmail, InvalidEmailError> {
+        const trimmed = email.trim().toLowerCase();
+
+        if (!trimmed || !this.EMAIL_REGEX.test(trimmed)) {
+            return err(new InvalidEmailError(email));
+        }
+
+        return ok(new UserEmail({ value: trimmed }));
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\domain\value-objects\user-password.ts ===  
+import { ValueObject } from '../../../../shared/domain/value-object';
+import { Result, ok, err } from '../../../../shared/core/result';
+import { BaseError } from '../../../../shared/core/errors/base.error';
+
+export interface UserPasswordProps {
+    value: string;
+    [key: string]: unknown; // اضافه کردن این خط
+}
+
+export class InvalidPasswordError extends BaseError {
+    constructor(reason: string) {
+        super(`Invalid password: ${reason}`);
+    }
+}
+
+export class UserPassword extends ValueObject<UserPasswordProps> {
+    get value(): string {
+        return this.props.value;
+    }
+
+    public static create(password: string): Result<UserPassword, InvalidPasswordError> {
+        if (!password || password.length < 8) {
+            return err(new InvalidPasswordError('Password must be at least 8 characters long'));
+        }
+
+        return ok(new UserPassword({ value: password }));
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\infrastructure\database\user.model.ts ===  
+import { Schema, model, Document } from 'mongoose';
+
+export interface IUserDocument extends Document {
+    email: string;
+    passwordHash: string;
+    fullName: string;
+    role: 'user' | 'admin';
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const userSchema = new Schema<IUserDocument>(
+    {
+        email: { type: String, required: true, unique: true, index: true },
+        passwordHash: { type: String, required: true },
+        fullName: { type: String, required: true },
+        role: { type: String, enum: ['user', 'admin'], default: 'user' },
+        isActive: { type: Boolean, default: true },
+    },
+    {
+        timestamps: true,
+    }
+);
+
+export const UserModel = model<IUserDocument>('User', userSchema); 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\infrastructure\http\controllers\login-user.controller.ts ===  
+import { Request, Response, NextFunction } from 'express';
+import { AuthenticateUser } from '@modules/users/application/use-cases/authenticate-user';
+
+export class LoginUserController {
+    constructor(private readonly authenticateUserUseCase: AuthenticateUser) {}
+
+    /**
+     * @openapi
+     * /auth/login:
+     *   post:
+     *     tags:
+     *       - Authentication
+     *     summary: Authenticate user and return JWT token
+     *     description: Authenticates user credentials and returns a JWT access token.
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - email
+     *               - password
+     *             properties:
+     *               email:
+     *                 type: string
+     *                 format: email
+     *                 example: user@nexus.com
+     *               password:
+     *                 type: string
+     *                 format: password
+     *                 example: Password123
+     *     responses:
+     *       200:
+     *         description: Login successful
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 token:
+     *                   type: string
+     *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+     *                 user:
+     *                   type: object
+     *                   properties:
+     *                     id:
+     *                       type: string
+     *                     email:
+     *                       type: string
+     *       401:
+     *         description: Invalid email or password
+     */
+    public async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const { email, password } = req.body;
+
+            const result = await this.authenticateUserUseCase.execute({ email, password });
+
+            if (result.isErr) {
+                res.status(result.error.statusCode || 400).json({
+                    success: false,
+                    error: result.error.message,
+                });
+                return;
+            }
+
+            res.status(200).json({
+                success: true,
+                message: 'User logged in successfully',
+                data: result.value,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\infrastructure\http\controllers\user.controller.spec.ts ===  
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { Request, Response, NextFunction } from 'express';
+import { UserController } from './user.controller';
+import { ok, err } from '@shared/core/result';
+import { BaseError } from '@shared/core/errors/base.error';
+
+describe('UserController Unit Tests', () => {
+    let controller: UserController;
+    let mockCreateUserUseCase: { execute: ReturnType<typeof vi.fn> };
+    let mockReq: Partial<Request>;
+    let mockRes: Partial<Response>;
+    let mockNext: NextFunction;
+
+    beforeEach(() => {
+        mockCreateUserUseCase = { execute: vi.fn() };
+        controller = new UserController(mockCreateUserUseCase as any);
+
+        mockReq = { body: {} };
+        mockRes = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+        };
+        mockNext = vi.fn();
+    });
+
+    it('should return 201 when registration succeeds', async () => {
+        mockReq.body = { email: 'test@example.com', password: 'Password123' };
+        mockCreateUserUseCase.execute.mockResolvedValue(
+            ok({
+                id: 'usr_1',
+                email: { value: 'test@example.com' },
+                createdAt: new Date(),
+            })
+        );
+
+        await controller.register(mockReq as Request, mockRes as Response, mockNext);
+
+        expect(mockRes.status).toHaveBeenCalledWith(201);
+        expect(mockRes.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                success: true,
+            })
+        );
+    });
+
+    it('should return 400 when registration fails', async () => {
+        mockReq.body = { email: 'invalid', password: '123' };
+        mockCreateUserUseCase.execute.mockResolvedValue(err(new BaseError('Invalid input')));
+
+        await controller.register(mockReq as Request, mockRes as Response, mockNext);
+
+        expect(mockRes.status).toHaveBeenCalledWith(400);
+        expect(mockRes.json).toHaveBeenCalledWith({
+            success: false,
+            error: 'Invalid input',
+        });
+    });
+
+    it('should pass error to next function if use case throws', async () => {
+        mockReq.body = { email: 'test@example.com', password: 'Password123' };
+        const unhandledError = new Error('Database down');
+        mockCreateUserUseCase.execute.mockRejectedValue(unhandledError);
+
+        await controller.register(mockReq as Request, mockRes as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalledWith(unhandledError);
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\infrastructure\http\controllers\user.controller.ts ===  
+import { Request, Response, NextFunction } from 'express';
+import { CreateUserUseCase } from '@modules/users/application/use-cases/create-user.use-case';
+
+export class UserController {
+    constructor(
+        private readonly createUserUseCase: CreateUserUseCase
+    ) {}
+
+    public register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { email, password } = req.body;
+            const result = await this.createUserUseCase.execute({ email, password });
+
+            if (result.isErr) {
+                res.status(400).json({
+                    success: false,
+                    error: result.error.message,
+                });
+                return;
+            }
+
+            const user = result.value;
+            res.status(201).json({
+                success: true,
+                data: {
+                    id: user.id,
+                    email: user.email.value,
+                    createdAt: user.createdAt,
+                },
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\infrastructure\http\dtos\user.dto.ts ===  
+export interface RegisterDTO {
+    email: string;
+    password: string;
+}
+
+export interface LoginDTO {
+    email: string;
+    password: string;
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\infrastructure\http\routes\auth.routes.ts ===  
+import { Router, Request, Response, NextFunction } from 'express';
+import { LoginUserController } from '../controllers/login-user.controller';
+import { AuthenticateUser } from '@modules/users/application/use-cases/authenticate-user';
+import { MongoUserRepository } from '@modules/users/infrastructure/repositories/mongo-user.repository';
+
+const authRouter = Router();
+
+// Composition Root / Manual DI Setup
+const userRepository = new MongoUserRepository();
+const authenticateUserUseCase = new AuthenticateUser(userRepository);
+const loginUserController = new LoginUserController(authenticateUserUseCase);
+
+authRouter.post('/login', (req: Request, res: Response, next: NextFunction) =>
+    loginUserController.handle(req, res, next)
+);
+
+export { authRouter }; 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\infrastructure\http\routes\user.routes.ts ===  
+import { Router, Request, Response, NextFunction } from 'express';
+import { UserController } from '@modules/users/infrastructure/http/controllers/user.controller';
+import { CreateUserUseCase } from '@modules/users/application/use-cases/create-user.use-case';
+import { MongoUserRepository } from '@modules/users/infrastructure/repositories/mongo-user.repository';
+
+const userRouter = Router();
+
+// Composition Root / Manual DI Setup
+const userRepository = new MongoUserRepository();
+const createUserUseCase = new CreateUserUseCase(userRepository);
+const userController = new UserController(createUserUseCase);
+
+/**
+ * @openapi
+ * /users/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags:
+ *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: Pass123456!
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Invalid input or user already exists
+ */
+userRouter.post('/register', (req: Request, res: Response, next: NextFunction) =>
+    userController.register(req, res, next)
+);
+
+export { userRouter }; 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\infrastructure\http\validators\login-user.schema.ts ===  
+import { z } from 'zod';
+
+export const loginUserSchema = z.object({
+    email: z
+        .string({ required_error: 'Email is required' })
+        .email('Invalid email format')
+        .toLowerCase(),
+    password: z
+        .string({ required_error: 'Password is required' })
+        .min(1, 'Password cannot be empty'),
+});
+
+export type LoginUserDto = z.infer<typeof loginUserSchema>; 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\infrastructure\repositories\mongo-user.repository.spec.ts ===  
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { MongoUserRepository } from './mongo-user.repository';
+import { User } from '@modules/users/domain/user.entity';
+import { UserEmail } from '@modules/users/domain/value-objects/user-email';
+import { UserPassword } from '@modules/users/domain/value-objects/user-password';
+import { MongoDatabase } from '@shared/infrastructure/database/mongodb';
+
+// ماک کردن درست Singleton کلاس MongoDatabase
+vi.mock('@shared/infrastructure/database/mongodb', () => {
+    const mockCollection = {
+        updateOne: vi.fn(),
+        findOne: vi.fn(),
+    };
+
+    const mockDb = {
+        collection: vi.fn().mockReturnValue(mockCollection),
+    };
+
+    return {
+        MongoDatabase: {
+            getInstance: vi.fn().mockReturnValue({
+                getConnection: () => ({
+                    db: mockDb,
+                }),
+            }),
+        },
+    };
+});
+
+describe('MongoUserRepository', () => {
+    let repository: MongoUserRepository;
+    let mockCollection: any;
+
+    beforeEach(() => {
+        const instance = MongoDatabase.getInstance();
+        const connection = instance.getConnection();
+        mockCollection = connection?.db.collection('users');
+
+        mockCollection.updateOne.mockReset().mockResolvedValue({});
+        mockCollection.findOne.mockReset();
+
+        repository = new MongoUserRepository();
+    });
+
+    it('should persist user document via updateOne with upsert', async () => {
+        const email = UserEmail.create('john@nexus.com').unwrap();
+        const password = UserPassword.create('securePassword123').unwrap();
+        const user = User.create({ email, password });
+
+        await repository.save(user);
+
+        expect(mockCollection.updateOne).toHaveBeenCalledWith(
+            { _id: user.id },
+            {
+                $set: {
+                    email: 'john@nexus.com',
+                    password: 'securePassword123',
+                    createdAt: expect.any(Date),
+                },
+            },
+            { upsert: true }
+        );
+    });
+
+    it('should map mongodb document back to domain User entity', async () => {
+        const fakeDoc = {
+            _id: 'usr_123',
+            email: 'john@nexus.com',
+            password: 'securePassword123',
+            createdAt: new Date(),
+        };
+
+        mockCollection.findOne.mockResolvedValue(fakeDoc);
+
+        const user = await repository.findByEmail('john@nexus.com');
+
+        expect(user).not.toBeNull();
+        if (user) {
+            expect(user.id).toBe('usr_123');
+            expect(user.email.value).toBe('john@nexus.com');
+        }
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\modules\users\infrastructure\repositories\mongo-user.repository.ts ===  
+import { Collection, Document } from 'mongodb';
+import { IUserRepository } from '@modules/users/domain/user.repository.interface';
+import { User } from '@modules/users/domain/user.entity';
+import { UserEmail } from '@modules/users/domain/value-objects/user-email';
+import { UserPassword } from '@modules/users/domain/value-objects/user-password';
+import { MongoDatabase } from '@shared/infrastructure/database/mongodb';
+
+interface UserDocument extends Document {
+    _id: string;
+    email: string;
+    password: string;
+    createdAt: Date;
+}
+
+/**
+ * MongoDB implementation of the IUserRepository interface.
+ * Handles persistence and reconstitution of User domain entities.
+ */
+export class MongoUserRepository implements IUserRepository {
+    private get collection(): Collection<UserDocument> {
+        const connection = MongoDatabase.getInstance().getConnection();
+        if (!connection || !connection.db) {
+            throw new Error('Database connection is not active.');
+        }
+        return connection.db.collection<UserDocument>('users');
+    }
+
+    public async save(user: User): Promise<void> {
+        await this.collection.updateOne(
+            { _id: user.id },
+            {
+                $set: {
+                    email: user.email.value,
+                    password: user.password.value,
+                    createdAt: user.createdAt,
+                },
+            },
+            { upsert: true }
+        );
+    }
+
+    public async findByEmail(email: string): Promise<User | null> {
+        const doc = await this.collection.findOne({ email: email.toLowerCase() });
+        if (!doc) {
+            return null;
+        }
+
+        return this.toDomain(doc);
+    }
+
+    public async findById(id: string): Promise<User | null> {
+        const doc = await this.collection.findOne({ _id: id });
+        if (!doc) {
+            return null;
+        }
+
+        return this.toDomain(doc);
+    }
+
+    private toDomain(doc: UserDocument): User {
+        const emailResult = UserEmail.create(doc.email);
+        const passwordResult = UserPassword.create(doc.password);
+
+        if (emailResult.isErr || passwordResult.isErr) {
+            throw new Error(`Corrupted user domain data in database for ID: ${doc._id}`);
+        }
+
+        return User.create(
+            {
+                email: emailResult.value,
+                password: passwordResult.value,
+                createdAt: doc.createdAt,
+            },
+            doc._id
+        );
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\core\result.spec.ts ===  
+import { describe, it, expect } from 'vitest';
+import { ok, err } from './result';
+
+describe('Result Monad Unit Tests', () => {
+    it('should create an Ok result with a valid value', () => {
+        const result = ok<string, Error>('Success Data');
+
+        expect(result.isOk).toBe(true);
+        expect(result.isErr).toBe(false);
+        if (result.isOk) {
+            expect(result.value).toBe('Success Data');
+            expect(result.unwrap()).toBe('Success Data');
+        }
+    });
+
+    it('should create an Err result with an error payload', () => {
+        const errorPayload = new Error('Domain Failure');
+        const result = err<string, Error>(errorPayload);
+
+        expect(result.isOk).toBe(false);
+        expect(result.isErr).toBe(true);
+        if (result.isErr) {
+            expect(result.error).toBe(errorPayload);
+            expect(() => result.unwrap()).toThrow('Cannot unwrap an Err value');
+        }
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\core\result.ts ===  
+export class Ok<T, _E> {
+    readonly isOk: true = true;
+    readonly isErr: false = false;
+    constructor(public readonly value: T) {}
+
+    public unwrap(): T {
+        return this.value;
+    }
+}
+
+export class Err<_T, E> {
+    readonly isOk: false = false;
+    readonly isTrue: true = true; // یا readonly isErr: true = true
+    readonly isErr: true = true;
+
+    constructor(public readonly error: E) {}
+
+    public unwrap(): never {
+        throw new Error('Cannot unwrap an Err value');
+    }
+}
+
+export type Result<T, E> = Ok<T, E> | Err<T, E>;
+
+export const ok = <T, E = never>(value: T): Result<T, E> => new Ok<T, E>(value);
+export const err = <T = never, E = unknown>(error: E): Result<T, E> => new Err<T, E>(error); 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\core\errors\base.error.spec.ts ===  
+import { describe, it, expect } from 'vitest';
+import { DomainError, NotFoundError } from './base.error';
+
+describe('Base Errors Unit Tests', () => {
+    it('should create DomainError with default status 400', () => {
+        const error = new DomainError('Invalid business rule');
+        expect(error.message).toBe('Invalid business rule');
+        expect(error.statusCode).toBe(400);
+        expect(error.code).toBe('DOMAIN_ERROR');
+    });
+
+    it('should format NotFoundError message correctly', () => {
+        const error = new NotFoundError('User', '12345');
+        expect(error.message).toBe('User with identifier 12345 was not found.');
+        expect(error.statusCode).toBe(404);
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\core\errors\base.error.ts ===  
+export abstract class BaseError extends Error {
+    public readonly code: string;
+    public readonly statusCode: number;
+    public readonly details?: Record<string, unknown> | undefined;
+
+    constructor(
+        message: string,
+        code = 'INTERNAL_SERVER_ERROR',
+        statusCode = 500,
+        details?: Record<string, unknown>
+    ) {
+        super(message);
+        this.name = this.constructor.name;
+        this.code = code;
+        this.statusCode = statusCode;
+        this.details = details;
+        Object.setPrototypeOf(this, new.target.prototype);
+        Error.captureStackTrace(this, this.constructor);
+    }
+}
+
+export class DomainError extends BaseError {
+    constructor(message: string, code = 'DOMAIN_ERROR', details?: Record<string, unknown>) {
+        super(message, code, 400, details);
+    }
+}
+
+export class ValidationError extends BaseError {
+    constructor(message = 'Validation failed', details?: Record<string, unknown>) {
+        super(message, 'VALIDATION_ERROR', 400, details);
+    }
+}
+
+export class UnauthorizedError extends BaseError {
+    constructor(message = 'Unauthorized access', details?: Record<string, unknown>) {
+        super(message, 'UNAUTHORIZED', 401, details);
+    }
+}
+
+export class ForbiddenError extends BaseError {
+    constructor(message = 'Forbidden action', details?: Record<string, unknown>) {
+        super(message, 'FORBIDDEN', 403, details);
+    }
+}
+
+export class NotFoundError extends BaseError {
+    constructor(entity: string, identifier?: string) {
+        const msg = identifier
+            ? `${entity} with identifier ${identifier} was not found.`
+            : `${entity} not found.`;
+        super(msg, 'NOT_FOUND', 404);
+    }
+}
+
+export class InfrastructureError extends BaseError {
+    constructor(message: string, code = 'INFRASTRUCTURE_ERROR', details?: Record<string, unknown>) {
+        super(message, code, 500, details);
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\domain\aggregate-root.ts ===  
+import { randomUUID } from 'node:crypto';
+
+/**
+ * Base class for all Aggregate Roots in the Domain Layer.
+ * Enforces entity boundary and guarantees identifier consistency.
+ */
+export abstract class AggregateRoot<T> {
+    protected readonly props: T;
+    private readonly _id: string;
+
+    protected constructor(props: T, id?: string) {
+        this.props = props;
+        this._id = id ? id : randomUUID();
+    }
+
+    public get id(): string {
+        return this._id;
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\domain\domain-core.spec.ts ===  
+import { describe, it, expect } from 'vitest';
+import { Entity } from './entity';
+import { ValueObject } from './value-object';
+
+interface TestEntityProps {
+    name: string;
+}
+
+class TestEntity extends Entity<TestEntityProps> {}
+
+interface TestValueObjectProps {
+    street: string;
+    zipCode: string;
+}
+
+class TestValueObject extends ValueObject<TestValueObjectProps> {}
+
+describe('Domain Core Abstractions', () => {
+    describe('Entity', () => {
+        it('should be equal if IDs match regardless of props', () => {
+            const id = crypto.randomUUID();
+            const entity1 = new TestEntity({ name: 'Alpha' }, id);
+            const entity2 = new TestEntity({ name: 'Beta' }, id);
+
+            expect(entity1.equals(entity2)).toBe(true);
+        });
+
+        it('should not be equal if IDs differ', () => {
+            const entity1 = new TestEntity({ name: 'Alpha' });
+            const entity2 = new TestEntity({ name: 'Alpha' });
+
+            expect(entity1.equals(entity2)).toBe(false);
+        });
+    });
+
+    describe('ValueObject', () => {
+        it('should be equal if props are structurally identical', () => {
+            const vo1 = new TestValueObject({ street: 'Main St', zipCode: '12345' });
+            const vo2 = new TestValueObject({ street: 'Main St', zipCode: '12345' });
+
+            expect(vo1.equals(vo2)).toBe(true);
+        });
+
+        it('should freeze props preventing mutations', () => {
+            const vo = new TestValueObject({ street: 'Main St', zipCode: '12345' });
+
+            expect(() => {
+                // @ts-expect-error Testing immutability runtime behavior
+                vo.props.street = 'New St';
+            }).toThrow();
+        });
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\domain\entity.ts ===  
+import { randomUUID } from 'node:crypto';
+
+export abstract class Entity<T> {
+    protected readonly _id: string;
+    public readonly props: T;
+
+    constructor(props: T, id?: string) {
+        this._id = id ? id : randomUUID();
+        this.props = props;
+    }
+
+    get id(): string {
+        return this._id;
+    }
+
+    public equals(object?: Entity<T>): boolean {
+        if (object === null || object === undefined) {
+            return false;
+        }
+
+        if (this === object) {
+            return true;
+        }
+
+        if (!(object instanceof Entity)) {
+            return false;
+        }
+
+        return this._id === object._id;
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\domain\value-object.ts ===  
+interface ValueObjectProps {
+    [key: string]: unknown;
+}
+
+export abstract class ValueObject<T extends ValueObjectProps> {
+    public readonly props: T;
+
+    constructor(props: T) {
+        this.props = Object.freeze(props);
+    }
+
+    public equals(vo?: ValueObject<T>): boolean {
+        if (vo === null || vo === undefined) {
+            return false;
+        }
+
+        if (vo.props === undefined) {
+            return false;
+        }
+
+        return JSON.stringify(this.props) === JSON.stringify(vo.props);
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\logger.ts ===  
+import { createLogger, format, transports } from 'winston';
+import { env } from '@config/env.config';
+
+export const logger = createLogger({
+    level: env.LOG_LEVEL,
+    format: format.combine(
+        format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        format.errors({ stack: true }),
+        format.splat(),
+        format.json(),
+    ),
+    defaultMeta: { service: 'nexus-ai-web3-hub' },
+    transports: [
+        new transports.Console({
+            format: format.combine(
+                format.colorize(),
+                format.printf(({ timestamp, level, message, service, stack }) => {
+                    const logOutput = `[${timestamp as string}] [${level}] [${service as string}]: ${message as string}`;
+                    return stack ? `${logOutput}\n${stack as string}` : logOutput;
+                }),
+            ),
+        }),
+    ],
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\database\base.repository.spec.ts ===  
+import { describe, it, expect, vi } from 'vitest';
+import { Model, Document } from 'mongoose';
+import { BaseRepository } from './base.repository';
+
+interface TestDoc extends Document {
+    name: string;
+    isDeleted?: boolean;
+}
+
+class TestRepository extends BaseRepository<TestDoc> {
+    constructor(model: Model<TestDoc>) {
+        super(model);
+    }
+}
+
+describe('BaseRepository Unit Tests', () => {
+    it('should create an entity successfully', async () => {
+        const mockCreatedDoc = { _id: '123', name: 'Test Item' } as TestDoc;
+        const mockModel = {
+            create: vi.fn().mockResolvedValue(mockCreatedDoc),
+        } as unknown as Model<TestDoc>;
+
+        const repo = new TestRepository(mockModel);
+        const result = await repo.create({ name: 'Test Item' });
+
+        expect(result.isOk).toBe(true);
+        if (result.isOk) {
+            expect(result.unwrap()).toEqual(mockCreatedDoc);
+        }
+    });
+
+    it('should return failure result when create throws an error', async () => {
+        const mockModel = {
+            create: vi.fn().mockRejectedValue(new Error('Database timeout')),
+        } as unknown as Model<TestDoc>;
+
+        const repo = new TestRepository(mockModel);
+        const result = await repo.create({ name: 'Fail Item' });
+
+        expect(result.isErr).toBe(true);
+        if (result.isErr) {
+            expect(result.error.message).toBe('Database timeout');
+        }
+    });
+
+    it('should find entity by id successfully', async () => {
+        const mockDoc = { _id: '123', name: 'Found Item' } as TestDoc;
+        const mockModel = {
+            findOne: vi.fn().mockResolvedValue(mockDoc),
+        } as unknown as Model<TestDoc>;
+
+        const repo = new TestRepository(mockModel);
+        const result = await repo.findById('123');
+
+        expect(result.isOk).toBe(true);
+        if (result.isOk) {
+            expect(result.unwrap()).toEqual(mockDoc);
+        }
+    });
+
+    it('should update entity successfully', async () => {
+        const mockUpdatedDoc = { _id: '123', name: 'Updated Name' } as TestDoc;
+        const mockModel = {
+            findOneAndUpdate: vi.fn().mockResolvedValue(mockUpdatedDoc),
+        } as unknown as Model<TestDoc>;
+
+        const repo = new TestRepository(mockModel);
+        const result = await repo.update('123', { name: 'Updated Name' });
+
+        expect(result.isOk).toBe(true);
+        if (result.isOk) {
+            expect(result.unwrap()).toEqual(mockUpdatedDoc);
+        }
+    });
+
+    it('should soft delete entity successfully', async () => {
+        const mockModel = {
+            updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+        } as unknown as Model<TestDoc>;
+
+        const repo = new TestRepository(mockModel);
+        const result = await repo.softDelete('123');
+
+        expect(result.isOk).toBe(true);
+        if (result.isOk) {
+            expect(result.unwrap()).toBe(true);
+        }
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\database\base.repository.ts ===  
+import { Model, Document, UpdateQuery } from 'mongoose';
+import { Result, ok, err } from '@shared/core/result';
+
+export abstract class BaseRepository<T extends Document> {
+    protected constructor(protected readonly model: Model<T>) {}
+
+    public async create(item: Partial<T>): Promise<Result<T, Error>> {
+        try {
+            const createdEntity = await this.model.create(item);
+            return ok(createdEntity);
+        } catch (error) {
+            return err(error as Error);
+        }
+    }
+
+    public async findById(id: string): Promise<Result<T | null, Error>> {
+        try {
+            const result = await this.model.findOne({
+                _id: id,
+                isDeleted: { $ne: true },
+            } as any);
+            return ok(result);
+        } catch (error) {
+            return err(error as Error);
+        }
+    }
+
+    public async update(id: string, item: UpdateQuery<T>): Promise<Result<T | null, Error>> {
+        try {
+            const updatedEntity = await this.model.findOneAndUpdate(
+                { _id: id, isDeleted: { $ne: true } } as any,
+                item,
+                { new: true }
+            );
+            return ok(updatedEntity);
+        } catch (error) {
+            return err(error as Error);
+        }
+    }
+
+    public async softDelete(id: string): Promise<Result<boolean, Error>> {
+        try {
+            const res = await this.model.updateOne(
+                { _id: id } as any,
+                { isDeleted: true, deletedAt: new Date() } as UpdateQuery<T>
+            );
+            return ok(res.modifiedCount > 0);
+        } catch (error) {
+            return err(error as Error);
+        }
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\database\base.schema.ts ===  
+import { SchemaOptions } from 'mongoose';
+
+export interface IBaseDocument {
+    createdAt?: Date;
+    updatedAt?: Date;
+    isDeleted?: boolean;
+    deletedAt?: Date | null;
+}
+
+export const baseSchemaOptions: SchemaOptions = {
+    timestamps: true,
+    toJSON: {
+        transform: (_doc, ret: Record<string, unknown>) => {
+            ret.id = ret._id;
+            delete ret._id;
+            delete ret.__v;
+            return ret;
+        },
+    },
+}; 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\database\mongodb.ts ===  
+import mongoose, { Connection } from 'mongoose';
+import { env } from '@config/env.config';
+import { logger } from '@shared/infrastructure/logger';
+import { InfrastructureError } from '@shared/core/errors/base.error';
+
+export class MongoDatabase {
+    private static instance: MongoDatabase;
+    private connection: Connection | null = null;
+
+    private constructor() {}
+
+    public static getInstance(): MongoDatabase {
+        if (!MongoDatabase.instance) {
+            MongoDatabase.instance = new MongoDatabase();
+        }
+        return MongoDatabase.instance;
+    }
+
+    public async connect(): Promise<Connection> {
+        if (this.connection && this.connection.readyState === 1) {
+            return this.connection;
+        }
+
+        try {
+            const conn = await mongoose.connect(env.MONGODB_URI);
+            this.connection = conn.connection;
+            logger.info('🍃 MongoDB connected successfully');
+            return this.connection;
+        } catch (error) {
+            logger.error('❌ Failed to connect to MongoDB:', error);
+            throw new InfrastructureError(
+                'Database connection failure',
+                'DATABASE_CONNECTION_ERROR',
+                { error: error instanceof Error ? error.message : String(error) }
+            );
+        }
+    }
+
+    public async disconnect(): Promise<void> {
+        if (this.connection) {
+            await mongoose.disconnect();
+            this.connection = null;
+            logger.info('🍃 MongoDB disconnected successfully');
+        }
+    }
+
+    public getConnection(): Connection | null {
+        return this.connection;
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\database\mongoose.connection.ts ===  
+import mongoose, { Connection } from 'mongoose';
+import { env } from '@config/env.config';
+import { logger } from '@shared/infrastructure/logger';
+import { Result, ok, err } from '@shared/core/result';
+
+export class DatabaseService {
+    private static instance: DatabaseService;
+    private connection: Connection | null = null;
+
+    private constructor() {}
+
+    public static getInstance(): DatabaseService {
+        if (!DatabaseService.instance) {
+            DatabaseService.instance = new DatabaseService();
+        }
+        return DatabaseService.instance;
+    }
+
+    public async connect(): Promise<Result<Connection, Error>> {
+        if (this.connection && this.connection.readyState === 1) {
+            return ok(this.connection);
+        }
+
+        try {
+            logger.info('Connecting to MongoDB...');
+            const db = await mongoose.connect(env.MONGODB_URI, {
+                autoIndex: env.NODE_ENV !== 'production',
+                serverSelectionTimeoutMS: 5000,
+            });
+
+            this.connection = db.connection;
+            logger.info('Successfully connected to MongoDB database');
+            return ok(this.connection);
+        } catch (error) {
+            logger.error('MongoDB Connection Error:', error);
+            return err(error as Error);
+        }
+    }
+
+    public async disconnect(): Promise<void> {
+        if (this.connection) {
+            await mongoose.disconnect();
+            this.connection = null;
+            logger.info('MongoDB connection closed gracefully');
+        }
+    }
+}
+
+export const databaseService = DatabaseService.getInstance(); 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\http\correlation-id.middleware.ts ===  
+import { Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'crypto';
+
+export const CORRELATION_ID_HEADER = 'x-correlation-id';
+
+export function correlationIdMiddleware(req: Request, res: Response, next: NextFunction): void {
+    const existingId = req.headers[CORRELATION_ID_HEADER];
+    const correlationId = typeof existingId === 'string' ? existingId : randomUUID();
+
+    req.headers[CORRELATION_ID_HEADER] = correlationId;
+    res.setHeader(CORRELATION_ID_HEADER, correlationId);
+
+    next();
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\http\middlewares\auth.middleware.ts ===  
+import { Request, Response, NextFunction } from 'express';
+import { JwtService } from '@shared/infrastructure/security/jwt.service';
+
+export interface AuthenticatedRequest extends Request {
+    user?: {
+        userId: string;
+        email: string;
+    };
+}
+
+export const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.status(401).json({ error: 'Unauthorized: No token provided' });
+        return;
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    if (!token) {
+        res.status(401).json({ error: 'Unauthorized: Malformed token header' });
+        return;
+    }
+
+    try {
+        const decoded = JwtService.verifyToken(token);
+        req.user = decoded;
+        next();
+    } catch {
+        res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
+    }
+}; 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\http\middlewares\error.middleware.spec.ts ===  
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { Request, Response, NextFunction } from 'express';
+import { errorMiddleware } from './error.middleware';
+import { NotFoundError, BaseError } from '@shared/core/errors/base.error';
+import { logger } from '@shared/infrastructure/logger';
+import { CORRELATION_ID_HEADER } from '../correlation-id.middleware';
+
+vi.mock('@shared/infrastructure/logger', () => ({
+    logger: {
+        warn: vi.fn(),
+        error: vi.fn(),
+        info: vi.fn(),
+    },
+}));
+
+describe('Error Middleware Unit Tests', () => {
+    let mockReq: Partial<Request>;
+    let mockRes: Partial<Response>;
+    let mockNext: NextFunction;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockReq = {
+            headers: {
+                [CORRELATION_ID_HEADER]: 'test-correlation-id-123',
+            },
+        };
+        mockRes = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+        };
+        mockNext = vi.fn();
+    });
+
+    it('should handle BaseError (operational client errors) with correct status and JSON response', () => {
+        const error = new NotFoundError('User', 'usr_123');
+
+        // آرگومان اول error و آرگومان دوم mockReq است
+        errorMiddleware(error, mockReq as Request, mockRes as Response, mockNext);
+
+        expect(logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('[test-correlation-id-123] Client Error [NOT_FOUND]'),
+            expect.any(Object)
+        );
+        expect(mockRes.status).toHaveBeenCalledWith(404);
+        expect(mockRes.json).toHaveBeenCalledWith({
+            success: false,
+            error: {
+                code: 'NOT_FOUND',
+                message: 'User with identifier usr_123 was not found.',
+            },
+            correlationId: 'test-correlation-id-123',
+        });
+    });
+
+    it('should handle unhandled unexpected errors with 500 status code', () => {
+        const error = new Error('Unexpected database failure');
+
+        errorMiddleware(error, mockReq as Request, mockRes as Response, mockNext);
+
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining('[test-correlation-id-123] Unhandled Fatal Error'),
+            expect.objectContaining({ stack: expect.any(String) })
+        );
+        expect(mockRes.status).toHaveBeenCalledWith(500);
+        expect(mockRes.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                success: false,
+                error: expect.objectContaining({
+                    code: 'INTERNAL_SERVER_ERROR',
+                }),
+                correlationId: 'test-correlation-id-123',
+            })
+        );
+    });
+
+    it('should fallback to N/A correlationId if correlation header is missing', () => {
+        const reqWithoutHeader = { headers: {} } as Request;
+        const error = new NotFoundError('Resource');
+
+        errorMiddleware(error, reqWithoutHeader, mockRes as Response, mockNext);
+
+        expect(mockRes.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                correlationId: 'N/A',
+            })
+        );
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\http\middlewares\error.middleware.ts ===  
+import { Request, Response, NextFunction } from 'express';
+import { BaseError } from '@shared/core/errors/base.error';
+import { logger } from '@shared/infrastructure/logger';
+import { env } from '@config/env.config';
+import { CORRELATION_ID_HEADER } from '../correlation-id.middleware';
+
+export const errorMiddleware = (
+    error: Error,
+    req: Request,
+    res: Response,
+    _next: NextFunction
+): void => {
+    const correlationId = (req?.headers?.[CORRELATION_ID_HEADER] as string) || 'N/A';
+
+    if (error instanceof BaseError) {
+        if (error.statusCode >= 500) {
+            logger.error(`[${correlationId}] Server Error [${error.code}]: ${error.message}`, {
+                stack: error.stack,
+                details: error.details,
+            });
+        } else {
+            logger.warn(`[${correlationId}] Client Error [${error.code}]: ${error.message}`, {
+                details: error.details,
+            });
+        }
+
+        res.status(error.statusCode).json({
+            success: false,
+            error: {
+                code: error.code,
+                message: error.message,
+                ...(error.details && { details: error.details }),
+            },
+            correlationId,
+        });
+        return;
+    }
+
+    // Unhandled unexpected exceptions
+    logger.error(`[${correlationId}] Unhandled Fatal Error: ${error.message}`, {
+        stack: error.stack,
+    });
+
+    res.status(500).json({
+        success: false,
+        error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: env.NODE_ENV === 'production' ? 'An unexpected error occurred' : error.message,
+        },
+        correlationId,
+    });
+}; 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\http\middlewares\validation.middleware.spec.ts ===  
+import { describe, it, expect, vi } from 'express'; // or vitest
+import { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
+import { validateBody } from './validation.middleware';
+import { describe, it, expect, vi } from 'vitest';
+
+describe('Validation Middleware', () => {
+    // تعریف یک اسکیما نمونه برای تست
+    const testSchema = z.object({
+        email: z.string().email(),
+        age: z.number().min(18),
+    });
+
+    it('should call next() and parse body if data is valid', async () => {
+        const req = {
+            body: { email: 'test@nexus.com', age: 25 },
+        } as unknown as Request;
+
+        const res = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+        } as unknown as Response;
+
+        const next = vi.fn() as NextFunction;
+
+        const middleware = validateBody(testSchema);
+        await middleware(req, res, next);
+
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(res.status).not.toHaveBeenCalled();
+        expect(req.body).toEqual({ email: 'test@nexus.com', age: 25 });
+    });
+
+    it('should return 400 with details if data is invalid', async () => {
+        const req = {
+            body: { email: 'invalid-email', age: 15 },
+        } as unknown as Request;
+
+        const res = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+        } as unknown as Response;
+
+        const next = vi.fn() as NextFunction;
+
+        const middleware = validateBody(testSchema);
+        await middleware(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({
+                success: false,
+                error: 'Validation failed',
+                details: expect.any(Array),
+            })
+        );
+        expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should pass non-zod errors to next middleware', async () => {
+        const faultySchema = z.object({
+            field: z.string().transform(() => {
+                throw new Error('Unexpected database or parsing error');
+            }),
+        });
+
+        const req = {
+            body: { field: 'value' },
+        } as unknown as Request;
+
+        const res = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+        } as unknown as Response;
+
+        const next = vi.fn() as NextFunction;
+
+        const middleware = validateBody(faultySchema);
+        await middleware(req, res, next);
+
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(next).toHaveBeenCalledWith(expect.any(Error));
+    });
+}); 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\http\middlewares\validation.middleware.ts ===  
+import { Request, Response, NextFunction } from 'express';
+import { AnyZodObject, ZodError } from 'zod';
+
+export const validateBody = (schema: AnyZodObject) => {
+    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            // اعتبارسنجی بدنه درخواست بر اساس اسکیما
+            req.body = await schema.parseAsync(req.body);
+            next();
+        } catch (error) {
+            if (error instanceof ZodError) {
+                res.status(400).json({
+                    success: false,
+                    error: 'Validation failed',
+                    details: error.errors.map((err) => ({
+                        field: err.path.join('.'),
+                        message: err.message,
+                    })),
+                });
+                return;
+            }
+            next(error);
+        }
+    };
+}; 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\http\validators\register-user.schema.ts ===  
+import { z } from 'zod';
+
+export const registerUserSchema = z.object({
+    email: z
+        .string({ required_error: 'Email is required' })
+        .email('Invalid email format')
+        .toLowerCase(),
+    password: z
+        .string({ required_error: 'Password is required' })
+        .min(6, 'Password must be at least 6 characters long'),
+});
+
+export type RegisterUserDto = z.infer<typeof registerUserSchema>; 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\security\jwt.service.ts ===  
+import jwt from 'jsonwebtoken';
+import { env } from '@config/env.config';
+
+export interface TokenPayload {
+    userId: string;
+    email: string;
+}
+
+export class JwtService {
+    static generateToken(payload: TokenPayload): string {
+        const options: jwt.SignOptions = env.JWT_EXPIRES_IN
+            ? { expiresIn: env.JWT_EXPIRES_IN as NonNullable<jwt.SignOptions['expiresIn']> }
+            : {};
+
+        return jwt.sign(payload, env.JWT_SECRET, options);
+    }
+
+    static verifyToken(token: string): TokenPayload {
+        return jwt.verify(token, env.JWT_SECRET) as TokenPayload;
+    }
+} 
+=== FILE: F:\nexus-ai-web3-hub\src\shared\infrastructure\security\password-hasher.ts ===  
+import bcrypt from 'bcryptjs';
+
+export class PasswordHasher {
+    private static readonly SALT_ROUNDS = 10;
+
+    static async hash(password: string): Promise<string> {
+        return bcrypt.hash(password, this.SALT_ROUNDS);
+    }
+
+    static async compare(plain: string, hashed: string): Promise<boolean> {
+        return bcrypt.compare(plain, hashed);
+    }
+} 

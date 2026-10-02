@@ -1,0 +1,94 @@
+Folder PATH listing for volume New Volume
+Volume serial number is 000000D5 92D9:A78D
+F:\NEXUS-AI-WEB3-HUB\SRC
+|   app.ts
+|   index.ts
+|   
++---config
+|       env.config.ts
+|       swagger.config.ts
+|       
++---modules
+|   \---users
+|       +---application
+|       |   \---use-cases
+|       |           authenticate-user.spec.ts
+|       |           authenticate-user.ts
+|       |           create-user.spec.ts
+|       |           create-user.use-case.ts
+|       |           
+|       +---domain
+|       |   |   user.entity.ts
+|       |   |   user.repository.interface.ts
+|       |   |   user.spec.ts
+|       |   |   
+|       |   \---value-objects
+|       |           user-email.ts
+|       |           user-password.ts
+|       |           
+|       \---infrastructure
+|           +---database
+|           |       user.model.ts
+|           |       
+|           +---http
+|           |   +---controllers
+|           |   |       login-user.controller.ts
+|           |   |       user.controller.spec.ts
+|           |   |       user.controller.ts
+|           |   |       
+|           |   +---dtos
+|           |   |       user.dto.ts
+|           |   |       
+|           |   +---routes
+|           |   |       auth.routes.ts
+|           |   |       user.routes.ts
+|           |   |       
+|           |   \---validators
+|           |           login-user.schema.ts
+|           |           
+|           \---repositories
+|                   mongo-user.repository.spec.ts
+|                   mongo-user.repository.ts
+|                   
+\---shared
+    +---core
+    |   |   result.spec.ts
+    |   |   result.ts
+    |   |   
+    |   \---errors
+    |           base.error.spec.ts
+    |           base.error.ts
+    |           
+    +---domain
+    |       aggregate-root.ts
+    |       domain-core.spec.ts
+    |       entity.ts
+    |       value-object.ts
+    |       
+    \---infrastructure
+        |   logger.ts
+        |   
+        +---database
+        |       base.repository.spec.ts
+        |       base.repository.ts
+        |       base.schema.ts
+        |       mongodb.ts
+        |       mongoose.connection.ts
+        |       
+        +---http
+        |   |   correlation-id.middleware.ts
+        |   |   
+        |   +---middlewares
+        |   |       auth.middleware.ts
+        |   |       error.middleware.spec.ts
+        |   |       error.middleware.ts
+        |   |       validation.middleware.spec.ts
+        |   |       validation.middleware.ts
+        |   |       
+        |   \---validators
+        |           register-user.schema.ts
+        |           
+        \---security
+                jwt.service.ts
+                password-hasher.ts
+                
