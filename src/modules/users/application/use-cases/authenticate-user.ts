@@ -10,6 +10,19 @@ export class InvalidCredentialsError extends BaseError {
         this.name = 'InvalidCredentialsError';
     }
 }
+export class InvalidCredentialsError3 extends BaseError {
+    constructor() {
+        super('Invalid email or password', 'INVALID_CREDENTIALS', 401);
+        this.name = 'InvalidCredentialsError';
+    }
+}
+
+export class InvalidCredentialsError4 extends BaseError {
+    constructor() {
+        super('Invalid email or password', 'INVALID_CREDENTIALS', 401);
+        this.name = 'InvalidCredentialsError';
+    }
+}
 
 export class AccountDisabledError extends BaseError {
     constructor() {
